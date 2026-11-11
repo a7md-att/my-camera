@@ -1,0 +1,51 @@
+name: Build Native Camera Pro APK
+
+# Runs automatically on every push, and can also be started by hand.
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+# Needed so the workflow can publish a Release with the APK attached.
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build Debug APK
+        run: gradle assembleDebug --stacktrace --no-daemon
+
+      - name: Name the APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk NativeCameraPro.apk
+
+      - name: Publish APK as a GitHub Release (direct download)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Native Camera Pro build ${{ github.run_number }}
+          body: Download **NativeCameraPro.apk** below and install it on your phone.
+          files: NativeCameraPro.apk
+          make_latest: true
+
+      - name: Also keep as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NativeCameraPro-debug-apk
+          path: NativeCameraPro.apk
+          if-no-files-found: error
